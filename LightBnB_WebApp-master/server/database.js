@@ -142,13 +142,64 @@ exports.getAllReservations = getAllReservations;
 //     });
 // };
 
-const getAllProperties = (options, limit = 10) => {
-  return pool
-    .query(`SELECT * FROM properties LIMIT $1`, [limit])
-    .then((result) => result.rows)
-    .catch((err) => {
-      console.log(err.message);
-    });
+
+
+const getAllProperties = function (options, limit = 10) {
+  // 1
+  const queryParams = [];
+  // 2
+  let queryString = `
+  SELECT properties.*, avg(property_reviews.rating) as average_rating
+  FROM properties
+  JOIN property_reviews ON properties.id = property_id
+  `;
+
+  // 3
+
+  if (options.owner_id) {
+    const clause = queryParams.length > 0 ? 'AND' : 'WHERE';
+    queryParams.push(options.owner_id);
+    queryString += `${clause} owner_id = $${queryParams.length} `;
+  }
+  
+  if (options.city) {
+    const clause = queryParams.length > 0 ? 'AND' : 'WHERE';
+    queryParams.push(`%${options.city}%`);
+    queryString += `${clause} city LIKE $${queryParams.length} `;
+  }
+
+  if (options.minimum_price_per_night) {
+    const clause = queryParams.length > 0 ? 'AND' : 'WHERE';
+    queryParams.push(options.minimum_price_per_night * 100);
+    queryString += `${clause} cost_per_night >= $${queryParams.length} `;
+  }
+
+  if (options.maximum_price_per_night) {
+    const clause = queryParams.length > 0 ? 'AND' : 'WHERE';
+    queryParams.push(options.maximum_price_per_night * 100);
+    queryString += `${clause} cost_per_night <= $${queryParams.length} `;
+  }
+
+  if (options.minimum_rating) {
+    const clause = queryParams.length > 0 ? 'AND' : 'WHERE';
+    queryParams.push(`${options.minimum_rating}`);
+    queryString += `${clause} property_reviews.rating >= $${queryParams.length} `;
+  }
+
+
+  // 4
+  queryParams.push(limit);
+  queryString += `
+  GROUP BY properties.id
+  ORDER BY cost_per_night
+  LIMIT $${queryParams.length};
+  `;
+
+  // 5
+  console.log(queryString, queryParams);
+
+  // 6
+  return pool.query(queryString, queryParams).then((res) => res.rows);
 };
 
 exports.getAllProperties = getAllProperties;
