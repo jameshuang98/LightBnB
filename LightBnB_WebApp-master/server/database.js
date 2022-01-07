@@ -19,16 +19,6 @@ const pool = new Pool({
  * @return {Promise<{}>} A promise to the user.
  */
 const getUserWithEmail = function(email) {
-  // let user;
-  // for (const userId in users) {
-  //   user = users[userId];
-  //   if (user.email.toLowerCase() === email.toLowerCase()) {
-  //     break;
-  //   } else {
-  //     user = null;
-  //   }
-  // }
-  // return Promise.resolve(user);
 
   return pool
     .query(`SELECT * FROM users WHERE email = $1`, [email])
@@ -36,11 +26,9 @@ const getUserWithEmail = function(email) {
     .catch((err) => {
       console.log(err.message);
     });
-
-
-
 }
 exports.getUserWithEmail = getUserWithEmail;
+
 
 /**
  * Get a single user from the database given their id.
@@ -56,8 +44,6 @@ const getUserWithId = function(id) {
   .catch((err) => {
     console.log(err.message);
   });
-
-
 }
 exports.getUserWithId = getUserWithId;
 
@@ -68,10 +54,6 @@ exports.getUserWithId = getUserWithId;
  * @return {Promise<{}>} A promise to the user.
  */
 const addUser =  function(user) {
-  // const userId = Object.keys(users).length + 1;
-  // user.id = userId;
-  // users[userId] = user;
-  // return Promise.resolve(user);
 
   return pool
   .query(`INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING *;` , [user.name, user.email, user.password] )
@@ -79,13 +61,8 @@ const addUser =  function(user) {
   .catch((err) => {
     console.log(err.message);
   });
-
-
-
 }
 exports.addUser = addUser;
-
-
 
 
 /// Reservations
@@ -111,10 +88,6 @@ const getAllReservations = function(guest_id, limit = 10) {
 exports.getAllReservations = getAllReservations;
 
 
-
-
-
-
 /// Properties
 
 /**
@@ -123,26 +96,6 @@ exports.getAllReservations = getAllReservations;
  * @param {*} limit The number of results to return.
  * @return {Promise<[{}]>}  A promise to the properties.
  */
-// const getAllProperties = function(options, limit = 10) {
-//   const limitedProperties = {};
-//   for (let i = 1; i <= limit; i++) {
-//     limitedProperties[i] = properties[i];
-//   }
-//   return Promise.resolve(limitedProperties);
-// }
-
-// const getAllProperties = (options, limit = 10) => {
-//   pool
-//     .query(`SELECT * FROM properties LIMIT $1`, [limit])
-//     .then((result) => {
-//       console.log(result.rows);
-//     })
-//     .catch((err) => {
-//       console.log(err.message);
-//     });
-// };
-
-
 
 const getAllProperties = function (options, limit = 10) {
   // 1
@@ -210,10 +163,33 @@ exports.getAllProperties = getAllProperties;
  * @param {{}} property An object containing all of the property details.
  * @return {Promise<{}>} A promise to the property.
  */
-const addProperty = function(property) {
-  const propertyId = Object.keys(properties).length + 1;
-  property.id = propertyId;
-  properties[propertyId] = property;
-  return Promise.resolve(property);
+
+ const addProperty = function(property) {
+  const queryString = `
+  INSERT INTO properties (owner_id, title, description, thumbnail_photo_url, cover_photo_url, cost_per_night, street, city, province, post_code, country, parking_spaces, number_of_bathrooms, number_of_bedrooms)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+  RETURNING *;
+  `;
+  const queryArr = [
+    property.owner_id,
+    property.title,
+    property.description,
+    property.thumbnail_photo_url,
+    property.cover_photo_url,
+    property.cost_per_night,
+    property.street,
+    property.city,
+    property.province,
+    property.post_code,
+    property.country,
+    property.parking_spaces,
+    property.number_of_bathrooms,
+    property.number_of_bedrooms
+  ];
+
+  return pool
+  .query(queryString, queryArr)
+  .then((response) => {response.rows[0]})
+  .catch((error) => error);
 }
 exports.addProperty = addProperty;
